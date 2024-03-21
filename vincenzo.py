@@ -11,6 +11,28 @@ class SilverPoint(Point):
         super().__init__(x, y)
         self.score = score
 
+'''class Grid:
+    def __init__(self, width, height):
+        self.width = width
+        self.height = height
+        self.grid = [[Cell() for _ in range(width)] for _ in range(height)]
+
+    def add_golden_point(self, x, y):
+        self.grid[y][x].has_golden_point = True
+
+    def add_silver_point(self, x, y, score):
+        self.grid[y][x].has_silver_point = True
+        self.grid[y][x].silver_point_score = score
+
+    def has_golden_point(self, x, y):
+        return self.grid[y][x].has_golden_point
+
+    def has_silver_point(self, x, y):
+        return self.grid[y][x].has_silver_point
+
+    def get_silver_point_score(self, x, y):
+        return self.grid[y][x].silver_point_score'''
+
 class Grid:
     def __init__(self, width, height):
         self.width = width
@@ -32,6 +54,49 @@ class Grid:
 
     def get_silver_point_score(self, x, y):
         return self.grid[y][x].silver_point_score
+
+    def get_neighbors(self, current):
+        neighbors = []
+        x, y = current
+        if x > 0:
+            neighbors.append((x - 1, y))  # Left neighbor
+        if x < self.width - 1:
+            neighbors.append((x + 1, y))  # Right neighbor
+        if y > 0:
+            neighbors.append((x, y - 1))  # Upper neighbor
+        if y < self.height - 1:
+            neighbors.append((x, y + 1))  # Lower neighbor
+        return neighbors
+
+    def get_neighbors_with_direction(self, current_tile):
+        x, y = current_tile
+        neighbors = self.get_neighbors(current_tile)
+        neighbors_with_direction = {}
+        for neighbor_x, neighbor_y in neighbors:
+            direction = None
+            if neighbor_x == x - 1:
+                direction = 'west'
+            elif neighbor_x == x + 1:
+                direction = 'east'
+            elif neighbor_y == y - 1:
+                direction = 'north'
+            elif neighbor_y == y + 1:
+                direction = 'south'
+            neighbors_with_direction[(neighbor_x, neighbor_y)] = direction
+        return neighbors_with_direction
+
+    def get_possible_directions(self, next_tile):
+        x, y = next_tile
+        directions = []
+        if x > 0 and not self.has_golden_point(x - 1, y):
+            directions.append('west')
+        if x < self.width - 1 and not self.has_golden_point(x + 1, y):
+            directions.append('east')
+        if y > 0 and not self.has_golden_point(x, y - 1):
+            directions.append('north')
+        if y < self.height - 1 and not self.has_golden_point(x, y + 1):
+            directions.append('south')
+        return directions
 
 class Cell:
     def __init__(self):
@@ -60,6 +125,9 @@ class Tile:
     
     def can_move(self, direction):
         return self.directions[direction]
+    
+    def can_move(self, direction):
+        return self.directions[direction] != (0, 0)
     
     def __str__(self):
         return f"Tile ID: {self.tile_id}, Cost: {self.cost}, Quantity: {self.quantity}, Directions: {self.directions}"
@@ -166,6 +234,7 @@ def plot_grid(grid, golden_points, silver_points):
 # Call plot_grid function
 plot_grid(grid, golden_points, silver_points)
 
+from queue import PriorityQueue
 
 class PathFinder:
     def __init__(self, grid, golden_points, silver_points, tiles):
@@ -190,6 +259,35 @@ class PathFinder:
             self.current_golden_point += 1
 
     def find_path_to_golden_point(self, next_golden_point):
+        start = (self.current_position.x, self.current_position.y)
+        end = (next_golden_point.x, next_golden_point.y)
+
+        frontier = PriorityQueue()
+        frontier.put(start, 0)
+        came_from = {}
+        cost_so_far = {}
+        came_from[start] = None
+        cost_so_far[start] = 0
+
+        while not frontier.empty():
+            current = frontier.get()
+
+            if current == end:
+                break
+
+            for next_tile, direction in self.grid.get_neighbors_with_direction(current):
+                new_cost = cost_so_far[current] + self.get_tile_cost(current, next_tile)
+                if next_tile not in cost_so_far or new_cost < cost_so_far[next_tile]:
+                    cost_so_far[next_tile] = new_cost
+                    priority = new_cost + self.heuristic(next_tile, end)
+                    frontier.put(next_tile, priority)
+                    came_from[next_tile] = (current, direction)
+
+        path = self.reconstruct_path(came_from, start, end)
+        return path
+
+
+    '''def find_path_to_golden_point(self, next_golden_point):
         # Implement A* search algorithm to find the shortest path to the next golden point
         # Consider collecting silver points along the way to maximize the score
         start = self.current_position
@@ -224,7 +322,7 @@ class PathFinder:
         path.append(start)
         path.reverse()
 
-        return path
+        return path'''
 
     def get_tile_cost(self, current_tile, next_tile):
         # Calculate the cost of moving from the current tile to the next tile
@@ -240,6 +338,8 @@ class PathFinder:
         return cost
 
     def heuristic(self, current, goal):
+        print(current)
+        print(goal)
         # Implement a heuristic function to estimate the distance from current to goal
         return abs(current.x - goal.x) + abs(current.y - goal.y)
 
