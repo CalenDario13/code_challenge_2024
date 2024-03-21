@@ -165,3 +165,195 @@ def plot_grid(grid, golden_points, silver_points):
 
 # Call plot_grid function
 plot_grid(grid, golden_points, silver_points)
+
+
+class PathFinder:
+    def __init__(self, grid, golden_points, silver_points, tiles):
+        self.grid = grid
+        self.golden_points = golden_points
+        self.silver_points = silver_points
+        self.tiles = tiles
+        self.current_position = None
+        self.current_golden_point = None
+        self.path = []
+        self.score = 0
+
+    def find_shortest_path(self):
+        # Initialize starting position
+        self.current_position = self.golden_points[0]
+        self.current_golden_point = 0
+
+        while self.current_golden_point < len(self.golden_points) - 1:
+            next_golden_point = self.golden_points[self.current_golden_point + 1]
+            path_to_next_golden_point = self.find_path_to_golden_point(next_golden_point)
+            self.path.extend(path_to_next_golden_point)
+            self.current_golden_point += 1
+
+    def find_path_to_golden_point(self, next_golden_point):
+        # Implement A* search algorithm to find the shortest path to the next golden point
+        # Consider collecting silver points along the way to maximize the score
+        start = self.current_position
+        end = next_golden_point
+
+        frontier = PriorityQueue()
+        frontier.put(start, 0)
+        came_from = {}
+        cost_so_far = {}
+        came_from[start] = None
+        cost_so_far[start] = 0
+
+        while not frontier.empty():
+            current = frontier.get()
+
+            if current == end:
+                break
+
+            for next_tile in self.grid.get_neighbors(current):
+                new_cost = cost_so_far[current] + self.get_tile_cost(current, next_tile)
+                if next_tile not in cost_so_far or new_cost < cost_so_far[next_tile]:
+                    cost_so_far[next_tile] = new_cost
+                    priority = new_cost + self.heuristic(next_tile, end)
+                    frontier.put(next_tile, priority)
+                    came_from[next_tile] = current
+
+        path = []
+        current = end
+        while current != start:
+            path.append(current)
+            current = came_from[current]
+        path.append(start)
+        path.reverse()
+
+        return path
+
+    def get_tile_cost(self, current_tile, next_tile):
+        # Calculate the cost of moving from the current tile to the next tile
+        # Consider the cost of the tile and any silver points collected
+        cost = 0
+        for direction, neighbor in self.grid.get_neighbors_with_direction(current_tile):
+            if neighbor == next_tile:
+                tile = self.select_tile(direction, self.grid.get_possible_directions(next_tile))
+                cost += tile.cost
+                if self.grid.has_silver_point(next_tile.x, next_tile.y):
+                    cost += self.grid.get_silver_point_score(next_tile.x, next_tile.y)
+                break
+        return cost
+
+    def heuristic(self, current, goal):
+        # Implement a heuristic function to estimate the distance from current to goal
+        return abs(current.x - goal.x) + abs(current.y - goal.y)
+
+    def select_tile(self, current_direction, target_directions):
+        # Select the most suitable tile based on current direction and target directions
+        # Choose the tile with the lowest cost that fulfills movement constraints
+        available_tiles = [tile for tile in self.tiles if tile.can_move(current_direction)]
+        suitable_tiles = [tile for tile in available_tiles if any(tile.can_move(direction) for direction in target_directions)]
+        return min(suitable_tiles, key=lambda tile: tile.cost)
+
+    def generate_output(self):
+        # Generate the output file with chosen tiles for each move and the final score
+        with open("output.txt", "w") as f:
+            for tile in self.path:
+                f.write(f"{tile.tile_id} ")
+            f.write(f"\nFinal Score: {self.score}")
+
+# Initialize PathFinder
+pathfinder = PathFinder(grid, golden_points, silver_points, tiles)
+
+# Find the shortest path between golden points
+pathfinder.find_shortest_path()
+
+# Generate output
+pathfinder.generate_output()
+
+
+'''class PathFinder:
+    def __init__(self, grid, golden_points, silver_points, tiles):
+        self.grid = grid
+        self.golden_points = golden_points
+        self.silver_points = silver_points
+        self.tiles = tiles
+        self.current_position = None
+        self.current_golden_point = None
+        self.path = []
+        self.score = 0
+
+    def find_shortest_path(self):
+        # Initialize starting position
+        self.current_position = self.golden_points[0]
+        self.current_golden_point = 0
+
+        while self.current_golden_point < len(self.golden_points) - 1:
+            next_golden_point = self.golden_points[self.current_golden_point + 1]
+            path_to_next_golden_point = self.find_path_to_golden_point(next_golden_point)
+            self.path.extend(path_to_next_golden_point)
+            self.current_golden_point += 1
+
+    def find_path_to_golden_point(self, next_golden_point):
+        # Placeholder function to find the path between current and next golden points
+        # Implement your pathfinding algorithm here (e.g., A* search)
+        # Consider collecting silver points along the way
+        # Update self.score accordingly
+
+        # Implement A* search algorithm to find the shortest path to the next golden point
+        # Consider collecting silver points along the way to maximize the score
+        start = self.current_position
+        end = next_golden_point
+
+        frontier = PriorityQueue()
+        frontier.put(start, 0)
+        came_from = {}
+        cost_so_far = {}
+        came_from[start] = None
+        cost_so_far[start] = 0
+
+        while not frontier.empty():
+            current = frontier.get()
+
+            if current == end:
+                break
+
+            for next_tile in self.grid.get_neighbors(current):
+                new_cost = cost_so_far[current] + self.get_tile_cost(current, next_tile)
+                if next_tile not in cost_so_far or new_cost < cost_so_far[next_tile]:
+                    cost_so_far[next_tile] = new_cost
+                    priority = new_cost + self.heuristic(next_tile, end)
+                    frontier.put(next_tile, priority)
+                    came_from[next_tile] = current
+
+        path = []
+        current = end
+        while current != start:
+            path.append(current)
+            current = came_from[current]
+        path.append(start)
+        path.reverse()
+
+        return path
+
+        pass
+
+    def select_tile(self, current_direction, target_directions):
+        # Placeholder function to select the most suitable tile based on current direction and target directions
+        # Implement your tile selection logic here
+
+
+
+        pass
+
+    def generate_output(self):
+        # Placeholder function to generate the output file with chosen tiles for each move
+        # Include the final score in the output
+
+        
+
+        pass
+
+# Initialize PathFinder
+pathfinder = PathFinder(grid, golden_points, silver_points, tiles)
+
+# Find the shortest path between golden points
+pathfinder.find_shortest_path()
+
+# Generate output
+pathfinder.generate_output()'''
