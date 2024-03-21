@@ -4,7 +4,7 @@ def read_input_file(filename):
     silver_points = []
     tile_types = []
 
-    with open(filename, 'r') as file:
+    with open(filename, 'r', encoding='utf-8-sig') as file:  # specifying utf-8-sig to handle BOM
         lines = file.readlines()
 
         # Read the first line containing grid dimensions and point counts
