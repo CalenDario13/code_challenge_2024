@@ -203,7 +203,7 @@ for tile in tiles:
     print("Tile ID:", tile.tile_id, "Cost:", tile.cost, "Quantity:", tile.quantity, "Directions:", tile.directions)
 
 
-import matplotlib.pyplot as plt
+'''import matplotlib.pyplot as plt
 
 def plot_grid(grid, golden_points, silver_points):
     fig, ax = plt.subplots()
@@ -232,7 +232,7 @@ def plot_grid(grid, golden_points, silver_points):
     plt.show()
 
 # Call plot_grid function
-plot_grid(grid, golden_points, silver_points)
+plot_grid(grid, golden_points, silver_points)'''
 
 from queue import PriorityQueue
 
@@ -247,8 +247,17 @@ class PathFinder:
         self.path = []
         self.score = 0
 
+    def reconstruct_path(self, came_from, start, end):
+        current = end
+        path = []
+        while current != start:
+            path.append((came_from[current][0], current))  # Store tile object and coordinates
+            current = came_from[current][0]
+        path.append((start, end))
+        path.reverse()
+        return path
+
     def find_shortest_path(self):
-        # Initialize starting position
         self.current_position = self.golden_points[0]
         self.current_golden_point = 0
 
@@ -258,6 +267,8 @@ class PathFinder:
             self.path.extend(path_to_next_golden_point)
             self.current_golden_point += 1
 
+
+    
     def find_path_to_golden_point(self, next_golden_point):
         start = (self.current_position.x, self.current_position.y)
         end = (next_golden_point.x, next_golden_point.y)
@@ -275,11 +286,13 @@ class PathFinder:
             if current == end:
                 break
 
-            for next_tile, direction in self.grid.get_neighbors_with_direction(current):
+            dicti = self.grid.get_neighbors_with_direction(current)
+
+            for next_tile, direction in dicti.items():
                 new_cost = cost_so_far[current] + self.get_tile_cost(current, next_tile)
                 if next_tile not in cost_so_far or new_cost < cost_so_far[next_tile]:
                     cost_so_far[next_tile] = new_cost
-                    priority = new_cost + self.heuristic(next_tile, end)
+                    priority = new_cost + self.heuristic(Point(next_tile[0], next_tile[1]), Point(end[0], end[1]))
                     frontier.put(next_tile, priority)
                     came_from[next_tile] = (current, direction)
 
@@ -366,7 +379,9 @@ pathfinder.find_shortest_path()
 # Generate output
 pathfinder.generate_output()
 
-
+#AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA
+#AAAA
+#A
 '''class PathFinder:
     def __init__(self, grid, golden_points, silver_points, tiles):
         self.grid = grid
